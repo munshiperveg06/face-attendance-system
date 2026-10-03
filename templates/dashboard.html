@@ -1,0 +1,15 @@
+{% extends "base.html" %}{% block content %}
+<h1>Today &middot; {{ today }}</h1>
+<div class="cards">
+<div class="card stat"><b>{{ stats.total }}</b><span>Employees</span></div>
+<div class="card stat"><b style="color:var(--ok)">{{ stats.present }}</b><span>Present</span></div>
+<div class="card stat"><b style="color:var(--bad)">{{ stats.absent }}</b><span>Absent</span></div>
+<div class="card stat"><b style="color:var(--warn)">{{ stats.late }}</b><span>Late</span></div></div>
+<h2>Checked in today</h2>
+<table><tr><th>ID</th><th>Name</th><th>Department</th><th>Check-in</th><th>Last seen</th><th></th></tr>
+{% for r in stats.rows %}<tr><td>{{ r.emp_id }}</td><td>{{ r.name }}</td><td>{{ r.department }}</td>
+<td>{{ r.check_in }}</td><td>{{ r.check_out or '-' }}</td>
+<td>{% if r.late %}<span class="pill late">Late</span>{% else %}<span class="pill ok">On time</span>{% endif %}</td></tr>
+{% else %}<tr><td colspan="6" class="mute">No attendance recorded yet. Open the Live Kiosk.</td></tr>{% endfor %}</table>
+{% if absent %}<h2>Not yet in</h2><div class="card">{% for e in absent %}<span class="pill" style="margin-right:6px">{{ e.name }}</span>{% endfor %}</div>{% endif %}
+{% endblock %}

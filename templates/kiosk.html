@@ -1,0 +1,29 @@
+{% extends "base.html" %}{% block content %}
+<h1>Live Attendance Kiosk</h1>
+<p class="mute">Stand in front of the camera for a couple of seconds. Attendance is recorded automatically.</p>
+<div class="cam"><video id="v" autoplay playsinline muted></video><canvas id="o"></canvas></div>
+<p id="status" class="mute">Starting camera...</p><div id="log"></div><canvas id="c" hidden></canvas>
+<script>
+const v=document.getElementById('v'),o=document.getElementById('o'),c=document.getElementById('c'),st=document.getElementById('status'),log=document.getElementById('log');
+navigator.mediaDevices.getUserMedia({video:{width:640,height:480}}).then(s=>{v.srcObject=s;v.onloadedmetadata=loop})
+ .catch(e=>st.textContent='Camera unavailable: '+e.message+' (open via http://127.0.0.1:5000 or https).');
+const label={check_in:'checked in',check_out:'checked out',already:'already checked in'};
+async function loop(){
+ try{
+  c.width=v.videoWidth;c.height=v.videoHeight;c.getContext('2d').drawImage(v,0,0);
+  const r=await fetch('/api/recognize',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({image:c.toDataURL('image/jpeg',.7)})});
+  const d=await r.json();draw(d);
+  st.textContent=d.faces.length?d.faces.length+' face(s) detected':'No face detected';
+  (d.events||[]).forEach(e=>{const el=document.createElement('div');
+   el.textContent=new Date().toLocaleTimeString()+' - '+e.name+' '+(label[e.status]||e.status);log.prepend(el);});
+ }catch(e){st.textContent='Server error: '+e.message}
+ setTimeout(loop,600);
+}
+function draw(d){
+ o.width=v.videoWidth;o.height=v.videoHeight;const g=o.getContext('2d');g.clearRect(0,0,o.width,o.height);
+ if(!d.size)return;const sx=o.width/d.size[0],sy=o.height/d.size[1];
+ d.faces.forEach(f=>{const [x,y,w,h]=f.box;g.lineWidth=3;g.strokeStyle=f.known?'#4ade80':'#f87171';
+  g.strokeRect(x*sx,y*sy,w*sx,h*sy);g.font='bold 18px sans-serif';g.fillStyle=g.strokeStyle;
+  g.fillText(f.name+(f.known?' ('+f.confidence+'%)':''),x*sx,Math.max(18,y*sy-8));});
+}
+</script>{% endblock %}

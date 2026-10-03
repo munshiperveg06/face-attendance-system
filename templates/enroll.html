@@ -1,0 +1,30 @@
+{% extends "base.html" %}{% block content %}
+<h1>Enroll: {{ emp.name }} <span class="mute">({{ emp.emp_id }})</span></h1>
+<p class="mute">Look at the camera and slowly turn your head a little between shots. Good, even lighting helps most.</p>
+<div class="cam"><video id="v" autoplay playsinline muted></video></div>
+<div class="bar"><i id="p" style="width:{{ [100, count*100//samples_required]|min }}%"></i></div>
+<p id="msg">{{ count }} / {{ samples_required }} samples saved.</p>
+<div class="row"><button id="auto">Start auto-capture</button>
+<button class="ghost" id="one">Capture one photo</button>
+<a class="btn ghost" href="{{ url_for('employees') }}" id="done">Done</a></div>
+<h2>Or upload photos</h2>
+<form class="card row" method="post" enctype="multipart/form-data" action="{{ url_for('api_upload', emp_id=emp.emp_id) }}">
+<input type="file" name="photos" accept="image/*" multiple required><button>Upload</button></form>
+<canvas id="c" hidden></canvas>
+<script>
+const need={{ samples_required }},id={{ emp.emp_id|tojson }};let count={{ count }},timer=null;
+const v=document.getElementById('v'),c=document.getElementById('c'),msg=document.getElementById('msg'),bar=document.getElementById('p');
+navigator.mediaDevices.getUserMedia({video:{width:640,height:480}}).then(s=>v.srcObject=s)
+ .catch(e=>msg.textContent='Camera unavailable: '+e.message+' (use localhost/https, or upload photos below).');
+async function shot(){
+ if(!v.videoWidth)return;c.width=v.videoWidth;c.height=v.videoHeight;c.getContext('2d').drawImage(v,0,0);
+ const r=await fetch('/api/enroll/'+id,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({image:c.toDataURL('image/jpeg',.9)})});
+ const d=await r.json();count=d.count;bar.style.width=Math.min(100,count*100/need)+'%';
+ msg.textContent=d.ok?count+' / '+need+' samples saved.':d.message;
+ if(count>=need&&timer){stop();msg.textContent='Training...';await fetch('/api/train',{method:'POST'});msg.textContent='Enrollment complete ('+count+' samples). Click Done.';}
+}
+function stop(){clearInterval(timer);timer=null;document.getElementById('auto').textContent='Start auto-capture'}
+document.getElementById('auto').onclick=()=>{if(timer)stop();else{timer=setInterval(shot,900);document.getElementById('auto').textContent='Stop'}};
+document.getElementById('one').onclick=shot;
+document.getElementById('done').onclick=()=>{navigator.sendBeacon('/api/train')};
+</script>{% endblock %}

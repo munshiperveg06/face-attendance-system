@@ -1,0 +1,11 @@
+{% extends "base.html" %}{% block content %}
+<h1>Attendance report</h1>
+<form class="card row" method="get"><label>From<br><input type="date" name="start" value="{{ start }}"></label>
+<label>To<br><input type="date" name="end" value="{{ end }}"></label><button>Show</button>
+<a class="btn ghost" href="{{ url_for('export', start=start, end=end) }}">Download CSV</a></form>
+<h2>{{ rows|length }} record(s)</h2>
+<table><tr><th>Date</th><th>ID</th><th>Name</th><th>Department</th><th>Check-in</th><th>Last seen</th><th></th></tr>
+{% for r in rows %}<tr><td>{{ r.day }}</td><td>{{ r.emp_id }}</td><td>{{ r.name }}</td><td>{{ r.department }}</td>
+<td>{{ r.check_in }}</td><td>{{ r.check_out or '-' }}</td><td>{% if r.late %}<span class="pill late">Late</span>{% endif %}</td></tr>
+{% else %}<tr><td colspan="7" class="mute">No records in this range.</td></tr>{% endfor %}</table>
+{% endblock %}
